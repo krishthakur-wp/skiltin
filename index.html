@@ -779,8 +779,8 @@
                 >
                   <p class="text-slate-400">
                     Click
-                    <span class="font-semibold text-emerald-300">“Analyze Performance (AI)”</span>
-                    above to generate study tips based on your latest records.
+                    <span class="font-semibold text-emerald-300">“Run Twin Engine”</span>
+                    above to generate personalized insights and learning roadmap.
                   </p>
                 </div>
               </div>
@@ -820,6 +820,18 @@
                   <h2 id="profile-view-name" class="text-xl font-bold text-slate-50"></h2>
                   <p id="profile-view-username" class="text-sm text-slate-400 font-mono"></p>
                   <p id="profile-view-email" class="text-xs text-slate-400 mt-1"></p>
+                  
+                  <!-- CGPA Section -->
+                  <div class="mt-4 pt-4 border-t border-slate-700">
+                    <p class="text-[11px] text-slate-500 uppercase tracking-wider mb-2">CGPA Score</p>
+                    <div class="flex items-center gap-3 mb-2">
+                      <p id="profile-view-cgpa" class="text-2xl font-bold text-emerald-400">—</p>
+                      <p id="profile-view-cgpa-status" class="text-[10px] text-slate-400">Not entered</p>
+                    </div>
+                    <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden border border-slate-700/50">
+                      <div id="profile-cgpa-bar" class="h-full bg-slate-600 transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1004,6 +1016,21 @@
                   <div>
                     <h3 class="text-lg font-semibold text-slate-100">Student Portfolio</h3>
                     <p class="text-xs text-slate-400">Resume, GitHub, Certifications</p>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="block text-[10px] text-slate-400 uppercase tracking-wider mb-2">CGPA (0-10 Scale)</label>
+                  <div class="space-y-2">
+                    <div class="flex items-center gap-3">
+                      <input type="number" id="input-student-cgpa" min="0" max="10" step="0.01" placeholder="e.g., 8.5" class="flex-1 bg-slate-900/60 border border-slate-700 rounded-lg py-2 px-4 text-xs text-slate-300 focus:outline-none focus:border-cyan-500 transition" />
+                      <span id="cgpa-display" class="text-sm font-semibold text-slate-400 w-12 text-right">—</span>
+                    </div>
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700/50">
+                      <div id="cgpa-progress-bar" class="h-full bg-slate-600 transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <!-- Status Message -->
+                    <p id="cgpa-status" class="text-[10px] text-slate-500">Enter CGPA to see assessment</p>
                   </div>
                 </div>
                 <div class="mb-3">
@@ -1421,6 +1448,7 @@
           role: "STUDENT",
           fullName: "Alex Doe",
           email: "alex.doe@example.com",
+          cgpa: null,
         });
 
         // Seed a few notifications
@@ -1483,6 +1511,7 @@
       let currentSyllabusSkills = ["Python", "C++", "Data Structures", "Algorithms", "SQL", "Operating Systems"]; // Default mock
       let currentResumeSkills = ["Python", "HTML", "CSS", "JavaScript"]; // Default mock
       let currentTargetRole = "Full Stack Developer";
+      let currentStudentCGPA = null;
 
       const ROLE_SKILLS = {
         "Full Stack Developer": ["JavaScript", "React", "Node.js", "SQL", "MongoDB", "Docker", "AWS"],
@@ -2429,9 +2458,15 @@
         const analysis = analyzeSkillGap(currentTargetRole);
         
         
-        // Welcome
+        // Welcome with CGPA if available
         const welcomeName = document.getElementById("user-welcome-name");
-        if (welcomeName) welcomeName.textContent = currentUser.fullName;
+        if (welcomeName) {
+          let welcomeText = currentUser.fullName;
+          if (currentStudentCGPA) {
+            welcomeText += ` • CGPA: ${currentStudentCGPA.toFixed(2)}`;
+          }
+          welcomeName.textContent = welcomeText;
+        }
 
         // Readiness
         const readinessEl = document.getElementById("dash-readiness-score");
@@ -2441,13 +2476,9 @@
             readinessCircle.style.setProperty('--progress', analysis.readinessScore);
         }
 
-        // Student Gap Count
-        const studentGapEl = document.getElementById("dash-student-gap-count");
-        if(studentGapEl) studentGapEl.textContent = analysis.studentGaps.length;
-
-        // Curriculum Gap Count
-        const curriculumGapEl = document.getElementById("dash-curriculum-gap-count");
-        if(curriculumGapEl) curriculumGapEl.textContent = analysis.curriculumGaps.length;
+        // Critical Skill Gaps Count - using correct property name 'missing'
+        const gapCountEl = document.getElementById("dash-gap-count");
+        if(gapCountEl) gapCountEl.textContent = analysis.missing.length;
 
         // Target Role
         const roleEl = document.getElementById("dash-target-role");
@@ -2482,6 +2513,48 @@
 
         const emailEl = document.getElementById("profile-view-email");
         if (emailEl) emailEl.textContent = currentUser.email;
+
+        // CGPA Display
+        const cgpaEl = document.getElementById("profile-view-cgpa");
+        const cgpaStatusEl = document.getElementById("profile-view-cgpa-status");
+        const cgpaBar = document.getElementById("profile-cgpa-bar");
+        
+        if (currentStudentCGPA) {
+          const percentage = (currentStudentCGPA / 10) * 100;
+          cgpaEl.textContent = currentStudentCGPA.toFixed(2);
+          cgpaBar.style.width = percentage + "%";
+          
+          if (currentStudentCGPA >= 8.5) {
+            cgpaEl.className = "text-2xl font-bold text-emerald-400";
+            cgpaStatusEl.textContent = "Excellent";
+            cgpaStatusEl.className = "text-[10px] text-emerald-400";
+            cgpaBar.className = "h-full bg-emerald-500 transition-all duration-300";
+          } else if (currentStudentCGPA >= 7.5) {
+            cgpaEl.className = "text-2xl font-bold text-cyan-400";
+            cgpaStatusEl.textContent = "Very Good";
+            cgpaStatusEl.className = "text-[10px] text-cyan-400";
+            cgpaBar.className = "h-full bg-cyan-500 transition-all duration-300";
+          } else if (currentStudentCGPA >= 6.5) {
+            cgpaEl.className = "text-2xl font-bold text-blue-400";
+            cgpaStatusEl.textContent = "Good";
+            cgpaStatusEl.className = "text-[10px] text-blue-400";
+            cgpaBar.className = "h-full bg-blue-500 transition-all duration-300";
+          } else if (currentStudentCGPA >= 5.0) {
+            cgpaEl.className = "text-2xl font-bold text-amber-400";
+            cgpaStatusEl.textContent = "Average";
+            cgpaStatusEl.className = "text-[10px] text-amber-400";
+            cgpaBar.className = "h-full bg-amber-500 transition-all duration-300";
+          } else {
+            cgpaEl.className = "text-2xl font-bold text-rose-400";
+            cgpaStatusEl.textContent = "Below Average";
+            cgpaStatusEl.className = "text-[10px] text-rose-400";
+            cgpaBar.className = "h-full bg-rose-500 transition-all duration-300";
+          }
+        } else {
+          cgpaEl.textContent = "—";
+          cgpaStatusEl.textContent = "Not entered";
+          cgpaBar.style.width = "0%";
+        }
 
         const resumeSkillsContainer = document.getElementById("profile-resume-skills");
         if (resumeSkillsContainer) {
@@ -2848,22 +2921,25 @@
             const analysis = analyzeSkillGap(currentTargetRole);
             const outputEl = document.getElementById("dashboard-ai-output");
 
-            const prompt =
-              `You are a Career Coach AI. The student wants to be a ${currentTargetRole}.
-               Missing Skills: ${analysis.missing.join(", ")}.
-               Current Skills: ${currentResumeSkills.join(", ")}.
-               Provide a 3-step action plan to bridge this gap. Keep it concise.`;
-
-            outputEl.innerHTML =
-              '<p class="text-xs text-slate-400 flex items-center gap-2"><span class="h-3 w-3 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin-soft"></span> Generating AI guidance...</p>';
-            try {
-              const res = await callGemini(prompt);
-              outputEl.innerHTML = (typeof marked.parse === 'function' ? marked.parse(res) : marked(res));
-            } catch (e) {
-              console.error(e);
-              outputEl.innerHTML =
-                '<p class="text-xs text-rose-400">Failed to contact AI service. Please try again later.</p>';
+            // Generate local insights without calling broken Gemini API
+            let insights = `<h3 class='text-sm font-bold text-emerald-300 mb-2'>Career Roadmap for ${currentTargetRole}</h3>`;
+            
+            if (analysis.missing.length === 0) {
+              insights += `<p>✅ Great! You have all required skills for <strong>${currentTargetRole}</strong>. Your readiness is <strong>${analysis.readinessScore}%</strong>.</p>
+                <p class='mt-2'>Next steps: <strong>1)</strong> Build 2-3 portfolio projects using your skills. <strong>2)</strong> Start applying to roles. <strong>3)</strong> Consider specialization (ML, DevOps, etc.)</p>`;
+            } else {
+              const top3Missing = analysis.missing.slice(0, 3);
+              insights += `<p><strong>Current Readiness:</strong> ${analysis.readinessScore}%</p>
+                <p class='mt-2'><strong>Action Plan (3 Steps):</strong></p>
+                <ol class='ml-4 mt-1'>
+                  <li><strong>Learn Priority Skills (${top3Missing.slice(0, 1).join(", ")}):</strong> Dedicate 4 weeks with online courses + daily practice.</li>
+                  <li><strong>Build Projects:</strong> Create 2 end-to-end projects using new + existing skills.</li>
+                  <li><strong>Apply:</strong> Target 5-10 job postings matching your skill profile.</li>
+                </ol>`;
+              insights += `<p class='mt-2'><strong>Top Skills to Master:</strong> ${top3Missing.join(", ")}</p>`;
             }
+            
+            outputEl.innerHTML = insights;
             
             // Also trigger roadmap generation
             generateRoadmapUI();
@@ -2938,11 +3014,21 @@
 
             document.getElementById("input-resume-text").value = text; // Update textarea
 
+            // Capture CGPA if entered
+            const cgpaInputVal = document.getElementById("input-student-cgpa").value;
+            if (cgpaInputVal) {
+              currentStudentCGPA = parseFloat(cgpaInputVal);
+            }
+
             if(text.trim()) {
                 const skills = extractSkillsFromText(text);
                 if (skills.length > 0) {
                     currentResumeSkills = skills;
-                    showToast(`Portfolio processed! Extracted ${skills.length} skills: ${skills.slice(0, 3).join(", ")}...`, "success");
+                    let message = `Portfolio processed! Extracted ${skills.length} skills: ${skills.slice(0, 3).join(", ")}...`;
+                    if (currentStudentCGPA) {
+                      message += ` | CGPA: ${currentStudentCGPA.toFixed(2)}`;
+                    }
+                    showToast(message, "success");
                 } else {
                     showToast("No known skills found. Try adding keywords manually.", "info");
                 }
@@ -3016,6 +3102,62 @@
 
         // Theme toggle
         document.getElementById("theme-toggle").addEventListener("click", toggleTheme);
+
+        // CGPA Input Listener - Dynamic progress and status
+        const cgpaInput = document.getElementById("input-student-cgpa");
+        if (cgpaInput) {
+          cgpaInput.addEventListener("input", (e) => {
+            const cgpaValue = parseFloat(e.target.value);
+            const progressBar = document.getElementById("cgpa-progress-bar");
+            const statusMsg = document.getElementById("cgpa-status");
+            const cgpaDisplay = document.getElementById("cgpa-display");
+
+            if (isNaN(cgpaValue) || cgpaValue === "") {
+              progressBar.style.width = "0%";
+              progressBar.className = "h-full bg-slate-600 transition-all duration-300";
+              statusMsg.textContent = "Enter CGPA to see assessment";
+              statusMsg.className = "text-[10px] text-slate-500";
+              cgpaDisplay.textContent = "—";
+              currentStudentCGPA = null;
+            } else if (cgpaValue < 0 || cgpaValue > 10) {
+              statusMsg.textContent = "CGPA must be between 0 and 10";
+              statusMsg.className = "text-[10px] text-rose-400";
+              cgpaDisplay.className = "text-sm font-semibold text-rose-400 w-12 text-right";
+            } else {
+              currentStudentCGPA = cgpaValue;
+              const percentage = (cgpaValue / 10) * 100;
+              progressBar.style.width = percentage + "%";
+              cgpaDisplay.textContent = cgpaValue.toFixed(2);
+
+              if (cgpaValue >= 8.5) {
+                progressBar.className = "h-full bg-emerald-500 transition-all duration-300";
+                statusMsg.textContent = "Excellent! Outstanding academic performance.";
+                statusMsg.className = "text-[10px] text-emerald-400";
+                cgpaDisplay.className = "text-sm font-semibold text-emerald-400 w-12 text-right";
+              } else if (cgpaValue >= 7.5) {
+                progressBar.className = "h-full bg-cyan-500 transition-all duration-300";
+                statusMsg.textContent = "Very Good! Strong academic foundation.";
+                statusMsg.className = "text-[10px] text-cyan-400";
+                cgpaDisplay.className = "text-sm font-semibold text-cyan-400 w-12 text-right";
+              } else if (cgpaValue >= 6.5) {
+                progressBar.className = "h-full bg-blue-500 transition-all duration-300";
+                statusMsg.textContent = "Good! Solid academic performance.";
+                statusMsg.className = "text-[10px] text-blue-400";
+                cgpaDisplay.className = "text-sm font-semibold text-blue-400 w-12 text-right";
+              } else if (cgpaValue >= 5.0) {
+                progressBar.className = "h-full bg-amber-500 transition-all duration-300";
+                statusMsg.textContent = "Average. Room for improvement in academics.";
+                statusMsg.className = "text-[10px] text-amber-400";
+                cgpaDisplay.className = "text-sm font-semibold text-amber-400 w-12 text-right";
+              } else {
+                progressBar.className = "h-full bg-rose-500 transition-all duration-300";
+                statusMsg.textContent = "Below Average. Focus on studies to improve.";
+                statusMsg.className = "text-[10px] text-rose-400";
+                cgpaDisplay.className = "text-sm font-semibold text-rose-400 w-12 text-right";
+              }
+            }
+          });
+        }
 
         // AI Chat
         document.getElementById("ai-chat-toggle").addEventListener("click", toggleAIChat);
